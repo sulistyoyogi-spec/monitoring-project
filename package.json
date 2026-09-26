@@ -2,6 +2,6 @@
   "name": "monitor-proyek-online",
   "private": true,
   "scripts": { "dev": "next dev", "build": "next build", "start": "next start" },
-  "dependencies": { "googleapis": "^144.0.0", "next": "^15.0.0", "next-auth": "^5.0.0", "react": "^19.0.0", "react-dom": "^19.0.0", "xlsx": "^0.18.5" },
+  "dependencies": { "googleapis": "^144.0.0", "next": "^15.0.0", "next-auth": "^5.0.0-beta.32", "react": "^19.0.0", "react-dom": "^19.0.0", "xlsx": "^0.18.5" },
   "devDependencies": { "@types/node": "^22.0.0", "@types/react": "^19.0.0", "typescript": "^5.0.0" }
 }
