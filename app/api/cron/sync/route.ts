@@ -14,10 +14,12 @@ export async function GET(request: Request) {
     const auth = new google.auth.JWT({ email:process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL, key:process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g,"\n"), scopes:["https://www.googleapis.com/auth/drive.readonly"] });
     const drive=google.drive({version:"v3",auth});
     let fileId=process.env.GOOGLE_DRIVE_FILE_ID!;
-    let metadata=await drive.files.get({fileId,fields:"mimeType,shortcutDetails"});
+    // Request the complete metadata object: partial-field syntax is rejected for
+    // some Drive shortcut sources, while the full response works for every file type.
+    let metadata=await drive.files.get({fileId});
     if(metadata.data.mimeType==="application/vnd.google-apps.shortcut" && metadata.data.shortcutDetails?.targetId){
       fileId=metadata.data.shortcutDetails.targetId;
-      metadata=await drive.files.get({fileId,fields:"mimeType"});
+      metadata=await drive.files.get({fileId});
     }
     const file=metadata.data.mimeType==="application/vnd.google-apps.spreadsheet"
       ? await drive.files.export({fileId,mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},{responseType:"stream"})
