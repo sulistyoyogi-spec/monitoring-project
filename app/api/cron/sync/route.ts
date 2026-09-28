@@ -13,7 +13,11 @@ export async function GET(request: Request) {
   try {
     const auth = new google.auth.JWT({ email:process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL, key:process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g,"\n"), scopes:["https://www.googleapis.com/auth/drive.readonly"] });
     const drive=google.drive({version:"v3",auth});
-    const file=await drive.files.get({fileId:process.env.GOOGLE_DRIVE_FILE_ID!,alt:"media"},{responseType:"stream"});
+    const fileId=process.env.GOOGLE_DRIVE_FILE_ID!;
+    const metadata=await drive.files.get({fileId,fields:"mimeType"});
+    const file=metadata.data.mimeType==="application/vnd.google-apps.spreadsheet"
+      ? await drive.files.export({fileId,mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},{responseType:"stream"})
+      : await drive.files.get({fileId,alt:"media"},{responseType:"stream"});
     const chunks: Buffer[]=[];
     for await (const chunk of file.data as AsyncIterable<Buffer|string>) chunks.push(Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk));
     const book=XLSX.read(Buffer.concat(chunks),{type:"buffer",cellDates:true});
