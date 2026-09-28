@@ -13,8 +13,12 @@ export async function GET(request: Request) {
   try {
     const auth = new google.auth.JWT({ email:process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL, key:process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g,"\n"), scopes:["https://www.googleapis.com/auth/drive.readonly"] });
     const drive=google.drive({version:"v3",auth});
-    const fileId=process.env.GOOGLE_DRIVE_FILE_ID!;
-    const metadata=await drive.files.get({fileId,fields:"mimeType"});
+    let fileId=process.env.GOOGLE_DRIVE_FILE_ID!;
+    let metadata=await drive.files.get({fileId,fields:"mimeType,shortcutDetails"});
+    if(metadata.data.mimeType==="application/vnd.google-apps.shortcut" && metadata.data.shortcutDetails?.targetId){
+      fileId=metadata.data.shortcutDetails.targetId;
+      metadata=await drive.files.get({fileId,fields:"mimeType"});
+    }
     const file=metadata.data.mimeType==="application/vnd.google-apps.spreadsheet"
       ? await drive.files.export({fileId,mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},{responseType:"stream"})
       : await drive.files.get({fileId,alt:"media"},{responseType:"stream"});
