@@ -13,8 +13,10 @@ export async function GET(request: Request) {
   try {
     const auth = new google.auth.JWT({ email:process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL, key:process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g,"\n"), scopes:["https://www.googleapis.com/auth/drive.readonly"] });
     const drive=google.drive({version:"v3",auth});
-    const file=await drive.files.get({fileId:process.env.GOOGLE_DRIVE_FILE_ID!,alt:"media"},{responseType:"arraybuffer"});
-    const book=XLSX.read(Buffer.from(file.data as ArrayBuffer),{type:"buffer",cellDates:true});
+    const file=await drive.files.get({fileId:process.env.GOOGLE_DRIVE_FILE_ID!,alt:"media"},{responseType:"stream"});
+    const chunks: Buffer[]=[];
+    for await (const chunk of file.data as AsyncIterable<Buffer|string>) chunks.push(Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk));
+    const book=XLSX.read(Buffer.concat(chunks),{type:"buffer",cellDates:true});
     const sheet=book.Sheets["DATABASE"] || book.Sheets[book.SheetNames[0]];
     const rows=XLSX.utils.sheet_to_json<unknown[]>(sheet,{header:1,defval:null,raw:true});
     const headers=rows[1].map(value); const at: Record<string,number>=Object.fromEntries(headers.map((h,i)=>[h,i]));
