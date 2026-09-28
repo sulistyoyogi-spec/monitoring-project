@@ -21,6 +21,7 @@ export async function GET(request: Request) {
       fileId=metadata.data.shortcutDetails.targetId;
       metadata=await drive.files.get({fileId});
     }
+    console.log("Drive source", { fileId, mimeType: metadata.data.mimeType, name: metadata.data.name });
     const file=metadata.data.mimeType==="application/vnd.google-apps.spreadsheet"
       ? await drive.files.export({fileId,mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},{responseType:"stream"})
       : await drive.files.get({fileId,alt:"media"},{responseType:"stream"});
