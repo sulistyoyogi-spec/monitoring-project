@@ -36,5 +36,9 @@ export async function GET(request: Request) {
     const active=projects.filter((p:any)=>p.status!=="Terkirim"); const summary={generatedAt:new Date().toISOString(),totalRows:projects.length,activeRows:active.length,lateRows:active.filter((p:any)=>p.risk==="Terlambat").length,attentionRows:active.filter((p:any)=>p.risk==="Perlu perhatian").length,activeValue:active.reduce((n:number,p:any)=>n+Number(p.payload.value||0),0)};
     await supabase("monitor_summary?on_conflict=id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:"current",payload:summary})});
     return Response.json(summary);
-  } catch(error) { console.error(error); return Response.json({error:"Sinkronisasi gagal"},{status:500}); }
+  } catch(error) {
+    console.error(error);
+    const details = error instanceof Error ? error.message : "Kesalahan tidak dikenal";
+    return Response.json({error:"Sinkronisasi gagal",details},{status:500});
+  }
 }
