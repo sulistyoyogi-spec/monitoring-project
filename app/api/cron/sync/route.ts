@@ -2,7 +2,7 @@ import { google } from "googleapis";
 import * as XLSX from "xlsx";
 
 const wanted: Record<string, string> = { year:"TAHUN PROYEK", code:"KODE PROYEK", project:"NAMA PROYEK", customer:"NAMA PEMESAN", panel:"NAMA PANEL", pc:"NAMA PC", pe:"NAMA PE", sales:"NAMA SALES", termPayment:"TERM PAYMENT", pic:"PIC", phone:"KONTAK PIC", value:"HARGA PANEL", approvalTarget:"TARGET APPROVAL", approvalActual:"TERIMA APPROVAL", fgTarget:"TARGET FG (SPK)", fgActual:"FG (REAL FG)", deliveryTarget:"TARGET KIRIM (SESUAI SPK)", deliveryActual:"REAL KIRIM" };
-const aliases: Record<string,string[]> = {termPayment:["TERM OF PAYMENT","TERM PEMBAYARAN","PAYMENT TERM"],pic:["NAMA PIC","PIC PROYEK"],phone:["NO HP PIC","NO. HP PIC","NO TELP PIC","NO. TELP PIC","NO TELEPON PIC","NOMOR HP PIC","PHONE PIC","TELEPON PIC"]};
+const aliases: Record<string,string[]> = {termPayment:["TERM PAY","TERM OF PAYMENT","TERM PEMBAYARAN","PAYMENT TERM"],pic:["NAMA PIC","PIC PROYEK"],phone:["KONTAK","NO HP PIC","NO. HP PIC","NO TELP PIC","NO. TELP PIC","NO TELEPON PIC","NOMOR HP PIC","PHONE PIC","TELEPON PIC"]};
 const normalized=(v:unknown)=>String(v??"").toUpperCase().replace(/[^A-Z0-9]/g,"");
 const date = (v: unknown) => v instanceof Date ? v.toISOString().slice(0,10) : null;
 const value = (v: unknown) => typeof v === "string" ? v.trim() || null : v ?? null;
