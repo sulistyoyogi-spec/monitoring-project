@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 
 export type DashboardRow = { id:string; code:string|null; project:string|null; customer:string|null; pc:string|null; status:string; risk:string; delivery_target:string|null; payload?:Record<string,unknown> };
 export type Forecast = { label:string; production:number; spk:number; approval:number };
-type Project = { id:string; name:string; code:string; pe:string; customer:string; qty:number; value:number; term:string; state:"Aktif"|"Close"; approval:number; production:number; delivery:number; mainComponents:string[] };
+type Project = { id:string; name:string; code:string; pe:string; customer:string; qty:number; value:number; term:string; state:string; approval:number; production:number; delivery:number; mainComponents:string[] };
 
 const rp=(n:number)=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n);
 const pct=(n:number,t:number)=>t?`${Math.round(n/t*100)}%`:"0%";
