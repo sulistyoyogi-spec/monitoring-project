@@ -6,7 +6,7 @@ const aliases: Record<string,string[]> = {termPayment:["TERM PAY","TERM OF PAYME
 const normalized=(v:unknown)=>String(v??"").toUpperCase().replace(/[^A-Z0-9]/g,"");
 const date = (v: unknown) => v instanceof Date ? v.toISOString().slice(0,10) : null;
 const value = (v: unknown) => typeof v === "string" ? v.trim() || null : v ?? null;
-function state(row: Record<string,unknown>) { if(row.deliveryActual)return "Terkirim"; if(row.fgActual)return "Siap kirim"; if(row.approvalActual)return "Produksi"; if(row.approvalTarget)return "Menunggu approval"; return "Perencanaan"; }
+function state(row: Record<string,unknown>) { if(row.deliveryActual)return "Terkirim"; if(row.fgActual)return "FG"; if(row.spkFinished)return "Produksi"; if(row.approvalActual)return "SPK"; if(row.approvalTarget)return "Approval"; return "Drawing"; }
 function risk(row: Record<string,unknown>) { if(row.deliveryActual)return "Normal"; const due = [row.deliveryTarget,row.fgTarget,row.approvalTarget].find(v=>typeof v === "string") as string|undefined; if(!due)return "Normal"; const days=(new Date(`${due}T00:00:00`).getTime()-Date.now())/86400000; return days<0?"Terlambat":days<=14?"Perlu perhatian":"Normal"; }
 function progressRank(row: Record<string,unknown>) { if(row.deliveryActual)return 5; if(row.fgActual)return 4; if(row.spkFinished)return 3; if(row.approvalActual)return 2; if(row.approvalTarget)return 1; return 0; }
 async function supabase(path:string, init:RequestInit={}) { const key=process.env.SUPABASE_SECRET_KEY!; const response=await fetch(`${process.env.SUPABASE_URL}/rest/v1/${path}`,{...init,headers:{apikey:key,Authorization:`Bearer ${key}`,"Content-Type":"application/json",...(init.headers||{})}}); if(!response.ok)throw new Error(`Supabase: ${await response.text()}`); }
