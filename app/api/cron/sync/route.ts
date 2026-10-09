@@ -8,7 +8,9 @@ const date = (v: unknown) => v instanceof Date ? v.toISOString().slice(0,10) : n
 const value = (v: unknown) => typeof v === "string" ? v.trim() || null : v ?? null;
 function state(row: Record<string,unknown>) { if(row.deliveryActual)return "Terkirim"; if(row.fgActual)return "FG"; if(row.spkFinished)return "Produksi"; if(row.approvalActual)return "SPK"; if(row.approvalTarget)return "Approval"; return "Drawing"; }
 function risk(row: Record<string,unknown>) { if(row.deliveryActual)return "Normal"; const due = [row.deliveryTarget,row.fgTarget,row.approvalTarget].find(v=>typeof v === "string") as string|undefined; if(!due)return "Normal"; const days=(new Date(`${due}T00:00:00`).getTime()-Date.now())/86400000; return days<0?"Terlambat":days<=14?"Perlu perhatian":"Normal"; }
-async function supabase(path:string, init:RequestInit={}) { const key=process.env.SUPABASE_SECRET_KEY!; const response=await fetch(`${process.env.SUPABASE_URL}/rest/v1/${path}`,{...init,headers:{apikey:key,Authorization:`Bearer ${key}`,"Content-Type":"application/json",...(init.headers||{})}}); if(!response.ok)throw new Error(`Supabase: ${await response.text()}`); }
+async function supabase(path:string, init:RequestInit={}) { const key=process.env.SUPABASE_SECRET_KEY!; const response=await fetch(`${process.env.SUPABASE_URL}/rest/v1/${path}`,{...init,headers:{apikey:key,Authorization:`Bearer ${key}`,"Content-Type":"application/json",...(init.headers||{})}}); if(!response.ok)throw new Error(`Supabase: ${await response.text()}`); return response; }
+async function currentSourceIds(){const ids:string[]=[];for(let from=0;;from+=1000){const response=await supabase("project_rows?select=id&id=like.*%3A%3A*",{headers:{Range:`${from}-${from+999}`}}),page=await response.json() as Array<{id:string}>;ids.push(...page.map(row=>row.id));if(page.length<1000)return ids;}}
+async function deleteRows(ids:string[]){for(let i=0;i<ids.length;i+=50){const values=ids.slice(i,i+50).map(id=>`\"${id.replace(/\\/g,"\\\\").replace(/\"/g,"\\\"")}\"`).join(","),filter=`in.(${values})`;await supabase(`project_rows?${new URLSearchParams({id:filter}).toString()}`,{method:"DELETE"});}}
 
 export async function GET(request: Request) {
   if (request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) return new Response("Unauthorized", { status: 401 });
@@ -35,12 +37,16 @@ export async function GET(request: Request) {
     const headers=rows[1].map(value); const at: Record<string,number>=Object.fromEntries(headers.map((h,i)=>[normalized(h),i]));
     const column=(key:string,label:string)=>{for(const candidate of [label,...(aliases[key]||[])]){const index=at[normalized(candidate)];if(index!==undefined)return index;}return -1;};
     const projects=rows.slice(2).map((cells,index)=>{ const row:Record<string,unknown>={}; for(const [key,label] of Object.entries(wanted)){const index=column(key,label),raw=index<0?null:cells[index]; row[key]=key.endsWith("Target")||key.endsWith("Actual")||key==="spkFinished"?date(raw):value(raw);} row.panelCode=value(cells[16]); row.bomCode=value(cells[17]); row.mainComponent=value(cells[29]); row.targetFg=date(cells[42]); row.m=value(cells[79]); row.em=value(cells[80]); row.el=value(cells[81]); row.qc=value(cells[82]); row.componentStatus=value(cells[83]); if(!row.code&&!row.project)return null; row.status=state(row); row.risk=risk(row); return {id:`${row.code||"tanpa-kode"}::${row.panel||"tanpa-panel"}::${index}`,year:Number(row.year)||null,code:row.code,project:row.project,customer:row.customer,pc:row.pc||row.pe||row.sales,status:row.status,risk:row.risk,delivery_target:row.deliveryTarget,payload:row}; }).filter(Boolean);
+    const previousIds=await currentSourceIds();
     for(let i=0;i<projects.length;i+=500) await supabase("project_rows?on_conflict=id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(projects.slice(i,i+500))});
+    const currentIds=new Set(projects.map((project:any)=>project.id));
+    const staleIds=previousIds.filter(id=>!currentIds.has(id));
+    await deleteRows(staleIds);
     // Remove only records written by the two short-lived identity experiments.
     // Current source-row records use the stable `project::panel::row` format.
     await supabase("project_rows?id=like.panel_*",{method:"DELETE"});
     await supabase("project_rows?id=like.row_*",{method:"DELETE"});
-    const active=projects.filter((p:any)=>p.status!=="Terkirim"); const summary={generatedAt:new Date().toISOString(),totalRows:projects.length,activeRows:active.length,lateRows:active.filter((p:any)=>p.risk==="Terlambat").length,attentionRows:active.filter((p:any)=>p.risk==="Perlu perhatian").length,activeValue:active.reduce((n:number,p:any)=>n+Number(p.payload.value||0),0)};
+    const active=projects.filter((p:any)=>p.status!=="Terkirim"); const summary={generatedAt:new Date().toISOString(),totalRows:projects.length,removedRows:staleIds.length,activeRows:active.length,lateRows:active.filter((p:any)=>p.risk==="Terlambat").length,attentionRows:active.filter((p:any)=>p.risk==="Perlu perhatian").length,activeValue:active.reduce((n:number,p:any)=>n+Number(p.payload.value||0),0)};
     await supabase("monitor_summary?on_conflict=id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:"current",payload:summary})});
     return Response.json(summary);
   } catch(error) {
