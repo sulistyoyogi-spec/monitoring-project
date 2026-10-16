@@ -23,7 +23,7 @@ function makePdf(data:DetailExport){
   const positions=[18,53,149,169,183,197,244,283,322,349,387,425,458,476,494,512,530,569];
   const limits=[7,22,3,3,3,11,9,9,6,10,9,9,4,4,4,4,9,9];
   const commands:string[]=[];
-  const textAt=(x:number,y:number,size:number,value:string,bold=false)=>commands.push(`BT /F${bold?2:1} ${size} Tf ${x} ${y} Td (${pdfEscape(value)}) Tj ET`);
+  const textAt=(x:number,y:number,size:number,value:string,bold=false)=>commands.push(`${bold?"0.08 0.22 0.42":"0.06 0.13 0.25"} rg BT /F${bold?2:1} ${size} Tf ${x} ${y} Td (${pdfEscape(value)}) Tj ET`);
   const line=(x1:number,y1:number,x2:number,y2:number)=>commands.push(`0.85 0.9 0.96 RG 0.4 w ${x1} ${y1} m ${x2} ${y2} l S`);
   const drawPage=(page:number,start:number)=>{
     commands.push("q 0.97 0.985 1 rg 0 0 841.89 595.28 re f Q");
