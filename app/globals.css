@@ -20,6 +20,7 @@
 .dashboard-main .forecast-card,.dashboard-main .project-card{border:1px solid #cfdde9;border-radius:18px;box-shadow:0 12px 30px #04203a1f;margin-bottom:22px}
 .dashboard-main .forecast-heading{padding:25px 30px 20px;align-items:flex-end;gap:15px}
 .dashboard-main .forecast-heading .eyebrow,.dashboard-main .list-heading .eyebrow{color:#07548d;font-size:11px;letter-spacing:.12em;margin-bottom:8px}
+.dashboard-main .forecast-heading .eyebrow,.dashboard-main .list-heading .eyebrow{display:none}
 .dashboard-main .forecast-heading h2,.dashboard-main .list-heading h2{font-size:23px;letter-spacing:-.025em;color:#183c5a}
 .dashboard-main .forecast-heading>p{color:#8196a7;font-size:12px;margin:0}
 .dashboard-main .forecast-card table{table-layout:fixed;min-width:980px}
