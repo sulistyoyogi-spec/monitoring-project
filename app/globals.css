@@ -45,3 +45,16 @@
 @media(max-width:1000px){.dashboard-main .dashboard-topbar{flex-wrap:wrap}.dashboard-main .actions{width:100%;margin-top:0}}
 @media(max-width:800px){.dashboard-main{padding:24px 18px 45px}.dashboard-brand{gap:14px}.dashboard-logo{width:76px;height:76px;border-radius:14px}.dashboard-logo img{width:74px;height:74px}.dashboard-main .dashboard-title h1{font-size:26px;margin-bottom:8px}.dashboard-main .dashboard-title .eyebrow{font-size:10px;margin-bottom:8px}.dashboard-main .updated{font-size:12px}.dashboard-main .forecast-heading{display:flex;flex-wrap:wrap;padding:20px}.dashboard-main .forecast-heading h2,.dashboard-main .list-heading h2{font-size:20px}.dashboard-main .list-heading{padding:20px 20px 8px}.dashboard-main .filters{padding:16px 20px}.dashboard-main .results{padding-left:20px}}
 @media(max-width:500px){.dashboard-main .actions{justify-content:flex-start}.dashboard-account{width:100%}.dashboard-main .filters select,.dashboard-main .filters button{min-height:40px}}
+
+/* The login card uses the same Simetri palette as the dashboard. */
+.login-main{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px 20px;background:linear-gradient(145deg,#084d81 0%,#0b5d92 68%,#0b5486 100%)}
+.login-card{width:min(100%,440px);background:#fff;border:1px solid #dce9f2;border-radius:20px;box-shadow:0 24px 70px #031d353b;padding:42px 42px 34px;text-align:center}
+.login-logo{display:flex;align-items:center;justify-content:center;margin:0 auto 22px;width:96px;height:96px;border:1px solid #e5edf3;border-radius:18px;background:#fff}
+.login-logo img{width:94px;height:94px;object-fit:contain}
+.login-card h1{font-size:27px;letter-spacing:-.035em;line-height:1.2;margin:0;color:#173c5b}
+.login-subtitle{font-size:14px;line-height:1.65;color:#617b90;margin:12px auto 28px;max-width:305px}
+.login-google{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:52px;border:1px solid #cfdeea;background:#fff;border-radius:10px;color:#234963;font:600 14px "Segoe UI",Arial,sans-serif;cursor:pointer}
+.login-google:hover{background:#f4f8fb;border-color:#a8c5d9}.login-google:focus-visible{outline:3px solid #7fb7db;outline-offset:3px}
+.login-google-icon{font-family:Arial,sans-serif;font-size:21px;font-weight:800;background:conic-gradient(from -45deg,#4285f4 0 27%,#34a853 27% 44%,#fbbc05 44% 65%,#ea4335 65% 82%,#4285f4 82%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.login-note{margin:22px 0 0;border-top:1px solid #e9f0f5;padding-top:20px;color:#637f93;font-size:12px;line-height:1.6}
+@media(max-width:480px){.login-card{padding:34px 24px 28px}.login-card h1{font-size:24px}}

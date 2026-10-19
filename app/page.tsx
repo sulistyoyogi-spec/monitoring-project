@@ -38,7 +38,7 @@ export default async function Dashboard() {
     <header className="topbar dashboard-topbar">
       <div className="dashboard-brand">
         <div className="dashboard-logo"><Image src="/logo-simetri.png" width={82} height={82} alt="Logo Simetri" priority /></div>
-        <div className="dashboard-title"><p className="eyebrow">OPERASIONAL PROYEK · {now.getFullYear()}</p><h1>Monitoring Proyek</h1><p className="updated">{rows.length.toLocaleString("id-ID")} baris dibaca · sumber diperbarui {s.generatedAt ? fmtWib(s.generatedAt) : "belum tersedia"}</p></div>
+        <div className="dashboard-title"><p className="eyebrow">OPERASIONAL PROYEK · {now.getFullYear()}</p><h1>Monitoring Project</h1><p className="updated">{rows.length.toLocaleString("id-ID")} baris dibaca · sumber diperbarui {s.generatedAt ? fmtWib(s.generatedAt) : "belum tersedia"}</p></div>
       </div>
       <div className="actions"><span className="dashboard-account">{session?.user?.email || ""}</span>{isAdmin ? <SyncButton action={refresh} /> : <a className="refresh" href="/">↻ Refresh</a>}<form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}><button className="logout">Keluar</button></form></div>
     </header>
