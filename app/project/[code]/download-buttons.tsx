@@ -1,6 +1,6 @@
 "use client";
 
-import {useState} from "react";
+import {useRef,useState} from "react";
 
 type PanelExport={
   status:string;panel:string;qty:number;fs:string;wm:string;price:number;targetApproval:string;realApproval:string;spk:string;spkDate:string;targetFg:string;bom:string;m:string;em:string;el:string;qc:string;realFg:string;realDelivery:string;
@@ -84,8 +84,42 @@ function makeTimelinePdf(data:DetailExport){
   return new Blob([pdf],{type:"application/pdf"});
 }
 
+type Schedule={startDrawing:string;targetApproval:string;delivery:string;fatDate:string};
+const asDate=(value:string)=>{const result=new Date(value+"T00:00:00");return Number.isNaN(result.getTime())?null:result;};
+const isWorkday=(value:Date)=>value.getDay()!==0&&value.getDay()!==6;
+const nextWorkday=(value:Date)=>{let result=addDays(value,1);while(!isWorkday(result))result=addDays(result,1);return result;};
+const previousWorkday=(value:Date)=>{let result=addDays(value,-1);while(!isWorkday(result))result=addDays(result,-1);return result;};
+const addWorkdays=(value:Date,count:number)=>{let result=new Date(value),remaining=Math.max(0,count);while(remaining){result=nextWorkday(result);remaining--;}return result;};
+const workdays=(from:Date,to:Date)=>{let count=0;for(let current=new Date(from);current<=to;current=addDays(current,1))if(isWorkday(current))count++;return count;};
+const mondayBefore=(value:Date)=>addDays(value,-((value.getDay()+6)%7));
+const labelDate=(value:Date)=>new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"long",year:"numeric"}).format(value);
+
+function makeScheduledTimelinePdf(data:DetailExport,schedule:Schedule){
+  const drawing=asDate(schedule.startDrawing)!,approval=asDate(schedule.targetApproval)!,delivery=asDate(schedule.delivery)!,prodStart=nextWorkday(approval),duration=Math.max(1,workdays(prodStart,delivery)),fat=schedule.fatDate?asDate(schedule.fatDate):null;
+  const phases:Array<[string,Date,Date,string]>=[
+    ["PENGAJUAN GAMBAR APPROVAL",drawing,previousWorkday(approval),"0.02 0.45 0.75"],
+    ["TERIMA APPROVAL & DP",approval,approval,"0.02 0.45 0.75"],
+    ["FABRIKASI PANEL BOX METAL",prodStart,addWorkdays(prodStart,Math.ceil(duration*.30)-1),"0.02 0.45 0.75"],
+    ["PROSES ASSEMBLY DAN WIRING",addWorkdays(prodStart,Math.floor(duration*.10)),addWorkdays(addWorkdays(prodStart,Math.floor(duration*.10)),Math.ceil(duration*.85)-1),"0.02 0.45 0.75"],
+    ["PENGADAAN KOMPONEN",prodStart,addWorkdays(prodStart,Math.ceil(duration*.40)-1),"0.02 0.45 0.75"],
+    ["QUALITY CONTROL",addWorkdays(prodStart,Math.max(0,duration-Math.ceil(duration*.20))),delivery,"0.02 0.45 0.75"]
+  ];
+  if(fat)phases.push(["FAT",fat,fat,"0.00 0.62 0.32"]);phases.push(["PENGIRIMAN PANEL",delivery,delivery,"0.84 0.05 0.08"]);
+  const left=38,right=556,tableTop=496,rowHeight=24,labelWidth=184,gridLeft=left+labelWidth,gridWidth=right-gridLeft,start=mondayBefore(addDays(drawing,-7)),weeks=Math.max(12,Math.ceil((addDays(delivery,7).getTime()-start.getTime()+86400000)/604800000)),weekWidth=gridWidth/weeks;
+  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit"}).formatToParts(new Date()),year=Number(parts.find(part=>part.type==="year")?.value),month=Number(parts.find(part=>part.type==="month")?.value),commands:string[]=[];
+  const textAt=(x:number,y:number,size:number,value:string,bold=false,color="0.05 0.10 0.17")=>commands.push(color+" rg BT /F"+(bold?2:1)+" "+size+" Tf "+x+" "+y+" Td ("+pdfEscape(value)+") Tj ET"),line=(x1:number,y1:number,x2:number,y2:number,w=.45)=>commands.push("0.12 0.14 0.17 RG "+w+" w "+x1+" "+y1+" m "+x2+" "+y2+" l S"),box=(x:number,y:number,w:number,h:number,color:string)=>commands.push(color+" rg "+x+" "+y+" "+w+" "+h+" re f");
+  commands.push("q 1 1 1 rg 0 0 595.28 841.89 re f Q");box(left,779,70,4,"0.76 0.06 0.14");box(left+70,779,94,4,"0.02 0.30 0.52");textAt(left,801,22,"simetri",true,"0.02 0.30 0.52");textAt(left+95,801,15,"EMPOWERING",true,"0.76 0.06 0.14");textAt(left+95,784,15,"THE WORLD",true,"0.02 0.30 0.52");textAt(405,800,7,"GRATITUDE 65 | SMK3 | SUCOFINDO | SIVACON | SIEMENS",true,"0.20 0.30 0.38");
+  textAt(left,746,11,"No : xxx / SMP / CS / "+roman(month)+" / "+year);textAt(388,746,10,"Jakarta, "+labelDate(new Date()));textAt(left,719,11,"Kepada Yth,");textAt(left,704,12,cut(data.customer||"Pelanggan",56),true);textAt(left,687,11,"Di Tempat");textAt(left,648,11,"Hal",true);textAt(left+102,648,11,": TIME SCHEDULE PRODUKSI PANEL - TR (FAT)",true);textAt(left,624,11,"Proyek",true);textAt(left+102,624,11,": "+cut(data.name,56),true);textAt(left,588,10,"Sehubungan dengan rencana pekerjaan pengadaan panel listrik untuk proyek di atas.");textAt(left,575,10,"berikut rencana time line produksi dan jadwal FAT.");
+  const bottom=tableTop-56-rowHeight*phases.length;line(left,tableTop,right,tableTop);line(left,tableTop-31,right,tableTop-31);line(left,tableTop-56,right,tableTop-56);[left,left+30,gridLeft,right].forEach(x=>line(x,tableTop,x,bottom));textAt(left+8,tableTop-38,8,"NO",true);textAt(left+77,tableTop-38,8,"PROSES",true);textAt(gridLeft+gridWidth/2-42,tableTop-17,8,"TIME LINE PRODUKSI",true);
+  for(let week=0;week<weeks;week++){const x=gridLeft+week*weekWidth,weekDate=addDays(start,week*7);line(x,tableTop-31,x,bottom);textAt(x+1,tableTop-47,5.7,String(Math.ceil((Date.UTC(weekDate.getFullYear(),weekDate.getMonth(),weekDate.getDate())-Date.UTC(weekDate.getFullYear(),0,1))/604800000)+1),true);if(week===0||weekDate.getMonth()!==addDays(weekDate,-7).getMonth())textAt(x+1,tableTop-40,5.3,new Intl.DateTimeFormat("id-ID",{month:"short"}).format(weekDate).toUpperCase(),true);}
+  phases.forEach(([name,from,to,color],index)=>{const y=tableTop-56-rowHeight*(index+1);line(left,y,right,y);textAt(left+10,y+9,8,String(index+1),true);textAt(left+35,y+9,7.3,name,true);const a=Math.max(0,Math.floor((from.getTime()-start.getTime())/604800000)),b=Math.min(weeks-1,Math.floor((to.getTime()-start.getTime())/604800000));box(gridLeft+a*weekWidth+1,y+2,Math.max(weekWidth-2,(b-a+1)*weekWidth-2),rowHeight-4,color);});for(let week=0;week<=weeks;week++)line(gridLeft+week*weekWidth,tableTop-56,gridLeft+week*weekWidth,bottom);
+  const note="Panel dapat diproduksi jika approval dan DP diterima."+(fat?" Untuk FAT direncanakan tanggal "+labelDate(fat)+".":"");textAt(left,bottom-28,9,cut(note,104));textAt(left,bottom-76,10,"Hormat kami,");textAt(left,bottom-96,10,"PT. Sinar Metrindo Perkasa",true);textAt(left,bottom-121,10,"Project Approval");
+  const stream=commands.join("\\n"),objects=["<< /Type /Catalog /Pages 2 0 R >>","<< /Type /Pages /Kids [5 0 R] /Count 1 >>","<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>","<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>","<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>","<< /Length "+stream.length+" >>\\nstream\\n"+stream+"\\nendstream"];let pdf="%PDF-1.4\\n%timeline\\n",offset=pdf.length;const offsets=[0];objects.forEach((object,index)=>{offsets.push(offset);const item=(index+1)+" 0 obj\\n"+object+"\\nendobj\\n";pdf+=item;offset+=item.length;});const xref=offset;pdf+="xref\\n0 "+(objects.length+1)+"\\n0000000000 65535 f \\n"+offsets.slice(1).map(value=>String(value).padStart(10,"0")+" 00000 n \\n").join("")+"trailer\\n<< /Size "+(objects.length+1)+" /Root 1 0 R >>\\nstartxref\\n"+xref+"\\n%%EOF";return new Blob([pdf],{type:"application/pdf"});
+}
+
 export default function DownloadButtons({data}:{data:DetailExport}){
-  const[busy,setBusy]=useState<"pdf"|"excel"|"timeline"|null>(null);
+  const[busy,setBusy]=useState<"pdf"|"excel"|"timeline"|null>(null),[form,setForm]=useState({startDrawing:"",targetApproval:"",delivery:"",fat:"no",fatDate:""}),[error,setError]=useState(""),dialog=useRef<HTMLDialogElement>(null);
+  const update=(key:keyof typeof form,value:string)=>setForm(current=>({...current,[key]:value}));
   const downloadExcel=async()=>{
     setBusy("excel");
     try{
@@ -128,6 +162,6 @@ export default function DownloadButtons({data}:{data:DetailExport}){
     setBusy("pdf");
     try{download(makePdf(data),`detail-${safeFileName(data.code)}.pdf`);}finally{setBusy(null)}
   };
-  const downloadTimeline=async()=>{setBusy("timeline");try{download(makeTimelinePdf(data),`timeline-${safeFileName(data.code)}.pdf`)}finally{setBusy(null)}};
-  return <div className="download-actions"><button type="button" onClick={downloadTimeline} disabled={busy!==null}>{busy==="timeline"?"Menyiapkan timeline...":"Unduh Timeline"}</button><button type="button" onClick={downloadPdf} disabled={busy!==null}>{busy==="pdf"?"Menyiapkan PDF...":"Unduh PDF"}</button><button type="button" onClick={downloadExcel} disabled={busy!==null}>{busy==="excel"?"Menyiapkan Excel...":"Unduh Excel"}</button></div>;
+  const createTimeline=(event:React.FormEvent)=>{event.preventDefault();const drawing=asDate(form.startDrawing),approval=asDate(form.targetApproval),delivery=asDate(form.delivery),fat=form.fat==="yes"?asDate(form.fatDate):null;if(!drawing||!approval||!delivery){setError("Lengkapi tiga tanggal utama terlebih dahulu.");return}if(approval<=drawing||delivery<=approval){setError("Urutan tanggal harus: pengajuan gambar, approval, lalu rencana kirim.");return}if(form.fat==="yes"&&!fat){setError("Isi tanggal FAT.");return}setError("");setBusy("timeline");try{download(makeScheduledTimelinePdf(data,{startDrawing:form.startDrawing,targetApproval:form.targetApproval,delivery:form.delivery,fatDate:fat?form.fatDate:""}),"timeline-"+safeFileName(data.code)+".pdf");dialog.current?.close()}finally{setBusy(null)}};
+  return <div className="download-actions"><button type="button" onClick={()=>dialog.current?.showModal()} disabled={busy!==null}>{busy==="timeline"?"Menyiapkan timeline...":"Buat Timeline Schedule"}</button><button type="button" onClick={downloadPdf} disabled={busy!==null}>{busy==="pdf"?"Menyiapkan PDF...":"Unduh PDF"}</button><button type="button" onClick={downloadExcel} disabled={busy!==null}>{busy==="excel"?"Menyiapkan Excel...":"Unduh Excel"}</button><dialog ref={dialog} className="timeline-dialog"><form onSubmit={createTimeline}><div className="timeline-heading"><div><b>Buat Timeline Schedule</b><span>Masukkan rencana tanggal proyek.</span></div><button type="button" aria-label="Tutup" onClick={()=>dialog.current?.close()}>×</button></div><label>Start pengajuan gambar<input type="date" value={form.startDrawing} onChange={event=>update("startDrawing",event.target.value)} required/></label><label>Target approval<input type="date" value={form.targetApproval} onChange={event=>update("targetApproval",event.target.value)} required/></label><label>Rencana kirim<input type="date" value={form.delivery} onChange={event=>update("delivery",event.target.value)} required/></label><label>FAT<select value={form.fat} onChange={event=>update("fat",event.target.value)}><option value="no">Tidak</option><option value="yes">Ya</option></select></label>{form.fat==="yes"&&<label>Tanggal FAT<input type="date" value={form.fatDate} onChange={event=>update("fatDate",event.target.value)} required/></label>}{error&&<p className="timeline-error">{error}</p>}<div className="timeline-actions"><button type="button" onClick={()=>dialog.current?.close()}>Batal</button><button type="submit">Buat dan unduh PDF</button></div></form></dialog></div>;
 }
