@@ -6,7 +6,7 @@ type PanelExport={
   status:string;panel:string;qty:number;fs:string;wm:string;price:number;targetApproval:string;realApproval:string;spk:string;spkDate:string;targetFg:string;bom:string;m:string;em:string;el:string;qc:string;realFg:string;realDelivery:string;
 };
 type DetailExport={
-  name:string;code:string;customer:string;pe:string;pic:string;phone:string;term:string;componentSummary:string[];totalPanels:number;totalValue:number;approval:string;production:string;fg:string;delivery:string;panels:PanelExport[];
+  name:string;code:string;customer:string;pe:string;pic:string;phone:string;term:string;componentSummary:string[];totalPanels:number;totalValue:number;approval:string;production:string;fg:string;delivery:string;timeline:{approvalTarget:string;approvalActual:string;spkFinished:string;targetFg:string;realFg:string;deliveryTarget:string;realDelivery:string;productionProgress:number};panels:PanelExport[];
 };
 
 const rupiah=(value:number)=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(value);
@@ -16,6 +16,10 @@ const ascii=(value:string)=>value.replace(/[^\x20-\x7e]/g,"-");
 const pdfEscape=(value:string)=>ascii(value).replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");
 const cut=(value:string,length:number)=>ascii(value).length>length?`${ascii(value).slice(0,Math.max(0,length-1))}.`:ascii(value);
 const download=(blob:Blob,fileName:string)=>{const url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download=fileName;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+const day=(value:string)=>{const date=new Date(`${value}T00:00:00`);return Number.isNaN(date.getTime())?null:date;};
+const iso=(value:Date)=>`${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,"0")}-${String(value.getDate()).padStart(2,"0")}`;
+const addDays=(value:Date,days:number)=>{const next=new Date(value);next.setDate(next.getDate()+days);return next;};
+const roman=(month:number)=>["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][month-1];
 
 function makePdf(data:DetailExport){
   const width=841.89,height=595.28,margin=18,rowsPerPage=35;
@@ -46,8 +50,42 @@ function makePdf(data:DetailExport){
   return new Blob([pdf],{type:"application/pdf"});
 }
 
+function makeTimelinePdf(data:DetailExport){
+  const width=595.28,height=841.89,left=44,right=551,tableTop=500,rowHeight=25,labelWidth=180,gridLeft=left+labelWidth,gridWidth=right-gridLeft,weeks=16,weekWidth=gridWidth/weeks;
+  const todayParts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+  const currentYear=Number(todayParts.find(part=>part.type==="year")?.value),currentMonth=Number(todayParts.find(part=>part.type==="month")?.value),currentDay=Number(todayParts.find(part=>part.type==="day")?.value),today=new Date(currentYear,currentMonth-1,currentDay);
+  const timeline=data.timeline, milestones=[timeline.approvalTarget,timeline.approvalActual,timeline.spkFinished,timeline.targetFg,timeline.realFg,timeline.deliveryTarget,timeline.realDelivery].map(day).filter((value):value is Date=>Boolean(value));
+  const earliest=milestones.length?new Date(Math.min(...milestones.map(value=>value.getTime()))):today,start=addDays(earliest,-14),monday=addDays(start,(8-start.getDay())%7),end=addDays(monday,weeks*7-1);
+  const commands:string[]=[];const textAt=(x:number,y:number,size:number,value:string,bold=false,color="0.05 0.10 0.17")=>commands.push(`${color} rg BT /F${bold?2:1} ${size} Tf ${x} ${y} Td (${pdfEscape(value)}) Tj ET`);const line=(x1:number,y1:number,x2:number,y2:number,width=0.45)=>commands.push(`0.12 0.14 0.17 RG ${width} w ${x1} ${y1} m ${x2} ${y2} l S`);const box=(x:number,y:number,w:number,h:number,color:string)=>commands.push(`${color} rg ${x} ${y} ${w} ${h} re f`);
+  commands.push("q 1 1 1 rg 0 0 595.28 841.89 re f Q");
+  box(left,778,58,5,"0.76 0.06 0.14");box(left+58,778,80,5,"0.02 0.30 0.52");textAt(left,800,23,"simetri",true,"0.02 0.30 0.52");textAt(left,787,8,"MONITORING PROJECT",true,"0.02 0.30 0.52");
+  textAt(left,746,11,`No :  / SMP / CS / ${roman(currentMonth)} / ${currentYear}`);textAt(389,746,10,`Jakarta, ${new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"long",year:"numeric",timeZone:"Asia/Jakarta"}).format(new Date())}`);
+  textAt(left,720,11,"Kepada Yth,");textAt(left,704,12,ascii(data.customer||"Pelanggan"),true);textAt(left,688,11,"Di Tempat");
+  textAt(left,649,11,"Hal",true);textAt(left+105,649,11,": TIME SCHEDULE PRODUKSI PANEL - TR (FAT)",true);textAt(left,625,11,"Proyek",true);textAt(left+105,625,11,`: ${cut(data.name,55)}`,true);
+  textAt(left,588,10,"Berikut rencana time line produksi dan jadwal FAT berdasarkan target proyek",false);textAt(left,575,10,"serta progres produksi yang tercatat pada database.",false);
+  line(left,tableTop,right,tableTop);line(left,tableTop-31,right,tableTop-31);line(left,tableTop-56,right,tableTop-56);line(left,tableTop-56,left,tableTop-56-rowHeight*8);line(left+30,tableTop,left+30,tableTop-56-rowHeight*8);line(gridLeft,tableTop,gridLeft,tableTop-56-rowHeight*8);line(right,tableTop,right,tableTop-56-rowHeight*8);
+  textAt(left+8,tableTop-37,8,"NO",true);textAt(left+75,tableTop-37,8,"PROSES",true);textAt(gridLeft+gridWidth/2-42,tableTop-16,8,"TIME LINE PRODUKSI",true);
+  for(let week=0;week<weeks;week++){const x=gridLeft+week*weekWidth;line(x,tableTop-31,x,tableTop-56-rowHeight*8);const weekDate=addDays(monday,week*7);textAt(x+1,tableTop-47,6,String(Math.ceil((Date.UTC(weekDate.getFullYear(),weekDate.getMonth(),weekDate.getDate())-Date.UTC(weekDate.getFullYear(),0,1))/604800000)+1),true);if(week===0||weekDate.getMonth()!==addDays(weekDate,-7).getMonth())textAt(x+2,tableTop-40,5.6,new Intl.DateTimeFormat("id-ID",{month:"short"}).format(weekDate).toUpperCase(),true);}
+  const phases=[
+    ["PENGAJUAN GAMBAR APPROVAL",addDays(monday,0),timeline.approvalActual||timeline.approvalTarget,"0.02 0.45 0.75"],
+    ["TERIMA APPROVAL & DP",timeline.approvalActual||timeline.approvalTarget,timeline.approvalActual||timeline.approvalTarget,"0.02 0.45 0.75"],
+    ["FABRIKASI PANEL BOX METAL",addDays(day(timeline.targetFg)||end,-28),addDays(day(timeline.targetFg)||end,-14),"0.02 0.45 0.75"],
+    ["PROSES ASSEMBLY DAN WIRING",addDays(day(timeline.targetFg)||end,-21),timeline.realFg||timeline.targetFg,"0.02 0.45 0.75"],
+    ["PENGADAAN KOMPONEN",addDays(day(timeline.targetFg)||end,-35),addDays(day(timeline.targetFg)||end,-21),"0.02 0.45 0.75"],
+    ["QUALITY CONTROL",addDays(day(timeline.realFg)||day(timeline.targetFg)||end,-7),timeline.realFg||timeline.targetFg,"0.02 0.45 0.75"],
+    ["FAT",timeline.realFg||timeline.targetFg,timeline.realFg||timeline.targetFg,"0.00 0.62 0.32"],
+    ["PENGIRIMAN PANEL",timeline.realDelivery||timeline.deliveryTarget,timeline.realDelivery||timeline.deliveryTarget,"0.84 0.05 0.08"],
+  ] as Array<[string,Date|string,string,string]>;
+  phases.forEach(([name,from,to,color],index)=>{const y=tableTop-56-rowHeight*(index+1);line(left,y,right,y);textAt(left+10,y+9,8,String(index+1),true);textAt(left+35,y+9,7.5,name,true);const begin=from instanceof Date?from:day(from),finish=day(to);if(begin&&finish){const a=Math.max(0,Math.floor((begin.getTime()-monday.getTime())/604800000)),b=Math.min(weeks-1,Math.floor((finish.getTime()-monday.getTime())/604800000));if(b>=a)box(gridLeft+a*weekWidth+1,y+2,Math.max(weekWidth-2,(b-a+1)*weekWidth-2),rowHeight-4,color);}});
+  for(let week=0;week<=weeks;week++)line(gridLeft+week*weekWidth,tableTop-56,gridLeft+week*weekWidth,tableTop-56-rowHeight*8);
+  textAt(left,235,10,`Progres produksi saat ini: ${Math.round(timeline.productionProgress)}%`,true,"0.02 0.30 0.52");textAt(left,213,10,`Target FG: ${timeline.targetFg||"-"} | Real FG: ${timeline.realFg||"-"} | Real kirim: ${timeline.realDelivery||"-"}`);textAt(left,180,10,"Hormat kami,");textAt(left,160,10,"PT. Sinar Metrindo Perkasa",true);textAt(left,135,10,"Project Approval");
+  const stream=commands.join("\n"),objects=["<< /Type /Catalog /Pages 2 0 R >>","<< /Type /Pages /Kids [5 0 R] /Count 1 >>","<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>","<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>","<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>",`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`];
+  let pdf="%PDF-1.4\n%timeline\n",offset=pdf.length;const offsets=[0];objects.forEach((object,index)=>{offsets.push(offset);const item=`${index+1} 0 obj\n${object}\nendobj\n`;pdf+=item;offset+=item.length;});const xref=offset;pdf+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n${offsets.slice(1).map(value=>`${String(value).padStart(10,"0")} 00000 n \n`).join("")}trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return new Blob([pdf],{type:"application/pdf"});
+}
+
 export default function DownloadButtons({data}:{data:DetailExport}){
-  const[busy,setBusy]=useState<"pdf"|"excel"|null>(null);
+  const[busy,setBusy]=useState<"pdf"|"excel"|"timeline"|null>(null);
   const downloadExcel=async()=>{
     setBusy("excel");
     try{
@@ -90,5 +128,6 @@ export default function DownloadButtons({data}:{data:DetailExport}){
     setBusy("pdf");
     try{download(makePdf(data),`detail-${safeFileName(data.code)}.pdf`);}finally{setBusy(null)}
   };
-  return <div className="download-actions"><button type="button" onClick={downloadPdf} disabled={busy!==null}>{busy==="pdf"?"Menyiapkan PDF...":"Unduh PDF"}</button><button type="button" onClick={downloadExcel} disabled={busy!==null}>{busy==="excel"?"Menyiapkan Excel...":"Unduh Excel"}</button></div>;
+  const downloadTimeline=async()=>{setBusy("timeline");try{download(makeTimelinePdf(data),`timeline-${safeFileName(data.code)}.pdf`)}finally{setBusy(null)}};
+  return <div className="download-actions"><button type="button" onClick={downloadTimeline} disabled={busy!==null}>{busy==="timeline"?"Menyiapkan timeline...":"Unduh Timeline"}</button><button type="button" onClick={downloadPdf} disabled={busy!==null}>{busy==="pdf"?"Menyiapkan PDF...":"Unduh PDF"}</button><button type="button" onClick={downloadExcel} disabled={busy!==null}>{busy==="excel"?"Menyiapkan Excel...":"Unduh Excel"}</button></div>;
 }
