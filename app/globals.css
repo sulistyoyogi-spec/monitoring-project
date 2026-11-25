@@ -46,6 +46,21 @@
 @media(max-width:800px){.dashboard-main{padding:24px 18px 45px}.dashboard-brand{gap:14px}.dashboard-logo{width:76px;height:76px;border-radius:14px}.dashboard-logo img{width:74px;height:74px}.dashboard-main .dashboard-title h1{font-size:26px;margin-bottom:8px}.dashboard-main .dashboard-title .eyebrow{font-size:10px;margin-bottom:8px}.dashboard-main .updated{font-size:12px}.dashboard-main .forecast-heading{display:flex;flex-wrap:wrap;padding:20px}.dashboard-main .forecast-heading h2,.dashboard-main .list-heading h2{font-size:20px}.dashboard-main .list-heading{padding:20px 20px 8px}.dashboard-main .filters{padding:16px 20px}.dashboard-main .results{padding-left:20px}}
 @media(max-width:500px){.dashboard-main .actions{justify-content:flex-start}.dashboard-account{width:100%}.dashboard-main .filters select,.dashboard-main .filters button{min-height:40px}}
 @media(max-width:800px){.dashboard-main .filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-main .filters input{grid-column:1/-1;width:100%;min-width:0}.dashboard-main .filters select,.dashboard-main .filters button{width:100%;min-width:0}}
+@media(max-width:600px){
+  .dashboard-main .project-card .scroll{overflow:visible;padding:0 14px}
+  .dashboard-main .projects,.dashboard-main .projects tbody{display:block;min-width:0;width:100%}
+  .dashboard-main .projects thead{display:none}
+  .dashboard-main .projects tr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 8px;position:relative;margin:0 0 12px;padding:16px;border:1px solid #dce8f0;border-radius:14px}
+  .dashboard-main .projects td{display:block;min-width:0;padding:0;text-align:left!important;border:0;font-size:13px}
+  .dashboard-main .projects td:nth-child(1){position:absolute;right:16px;top:16px}
+  .dashboard-main .projects td:nth-child(2){grid-column:1/-1;min-width:0;padding-right:60px;padding-bottom:14px;margin-bottom:12px;border-bottom:1px solid #e8eff4}
+  .dashboard-main .projects td:nth-child(2) b{overflow-wrap:anywhere}
+  .dashboard-main .projects td:nth-child(4),.dashboard-main .projects td:nth-child(5){display:none}
+  .dashboard-main .projects td:nth-child(3)::before,.dashboard-main .projects td:nth-child(6)::before,.dashboard-main .projects td:nth-child(7)::before,.dashboard-main .projects td:nth-child(8)::before{display:block;color:#8195a4;font-size:11px;margin-bottom:5px}
+  .dashboard-main .projects td:nth-child(3)::before{content:'Total panel'}.dashboard-main .projects td:nth-child(6)::before{content:'Approval'}.dashboard-main .projects td:nth-child(7)::before{content:'Produksi'}.dashboard-main .projects td:nth-child(8)::before{content:'Kirim'}
+  .dashboard-main .projects .project-link::after{content:'Lihat detail proyek →';display:block;color:#075b94;font-weight:bold;margin-top:12px}
+  .dashboard-main .projects td:first-child i{background:#e8f5ee;color:#27815b}.dashboard-main .projects td:first-child i.closed{background:#eef1f5;color:#718097}
+}
 
 /* The login card uses the same Simetri palette as the dashboard. */
 .login-main{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px 20px;background:linear-gradient(145deg,#084d81 0%,#0b5d92 68%,#0b5486 100%)}
