@@ -45,6 +45,7 @@
 @media(max-width:1000px){.dashboard-main .dashboard-topbar{flex-wrap:wrap}.dashboard-main .actions{width:100%;margin-top:0}}
 @media(max-width:800px){.dashboard-main{padding:24px 18px 45px}.dashboard-brand{gap:14px}.dashboard-logo{width:76px;height:76px;border-radius:14px}.dashboard-logo img{width:74px;height:74px}.dashboard-main .dashboard-title h1{font-size:26px;margin-bottom:8px}.dashboard-main .dashboard-title .eyebrow{font-size:10px;margin-bottom:8px}.dashboard-main .updated{font-size:12px}.dashboard-main .forecast-heading{display:flex;flex-wrap:wrap;padding:20px}.dashboard-main .forecast-heading h2,.dashboard-main .list-heading h2{font-size:20px}.dashboard-main .list-heading{padding:20px 20px 8px}.dashboard-main .filters{padding:16px 20px}.dashboard-main .results{padding-left:20px}}
 @media(max-width:500px){.dashboard-main .actions{justify-content:flex-start}.dashboard-account{width:100%}.dashboard-main .filters select,.dashboard-main .filters button{min-height:40px}}
+@media(max-width:800px){.dashboard-main .filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-main .filters input{grid-column:1/-1;width:100%;min-width:0}.dashboard-main .filters select,.dashboard-main .filters button{width:100%;min-width:0}}
 
 /* The login card uses the same Simetri palette as the dashboard. */
 .login-main{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px 20px;background:linear-gradient(145deg,#084d81 0%,#0b5d92 68%,#0b5486 100%)}
