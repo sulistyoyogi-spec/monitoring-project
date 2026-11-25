@@ -61,6 +61,7 @@
   .dashboard-main .projects .project-link::after{content:'Lihat detail proyek →';display:block;color:#075b94;font-weight:bold;margin-top:12px}
   .dashboard-main .projects td:first-child i{background:#e8f5ee;color:#27815b}.dashboard-main .projects td:first-child i.closed{background:#eef1f5;color:#718097}
 }
+@media(max-width:600px){.detail-card .stat-grid,.detail-card .info-grid,.detail-card .detail-summary{grid-template-columns:minmax(0,1fr)}.detail-card .stat,.detail-card .info{min-width:0;overflow-wrap:anywhere}.detail-card .stat b,.detail-card .info b{font-size:16px}}
 
 /* The login card uses the same Simetri palette as the dashboard. */
 .login-main{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px 20px;background:linear-gradient(145deg,#084d81 0%,#0b5d92 68%,#0b5486 100%)}
